@@ -194,24 +194,27 @@ namespace ICSharpCode.ILSpy.Languages
 				{
 					// tabs cause havoc with alignment
 					int tabCount = 0;
-					int incStartCount = 0;
-					int incEndCount = 0;
-					for (int i = 0; i < text.Length; i++)
+					int startColShiftCount = 0;
+					int endColShiftCount = 0;
+					for (int i = 0; i < text.Length && text[i] == '\t'; i++)
 					{
-						if (text[i] == '\t')
-						{
-							tabCount++;
-							if (i <= startColumn)
-								incStartCount++;
-							if (i <= endColumn)
-								incEndCount++;
-						}
-						else
-							break;
+						tabCount++;
+						if (i <= startColumn)
+							startColShiftCount++;
+						if (i <= endColumn)
+							endColShiftCount++;
 					}
-					text = new string(' ', TabSize * tabCount) + text[tabCount..];
-					startColumn += incStartCount * (TabSize - 1);
-					endColumn += incEndCount * (TabSize - 1);
+
+					int extraChars = TabSize - 1;
+					startColumn += startColShiftCount * extraChars;
+					endColumn += endColShiftCount * extraChars;
+
+					// single allocation
+					text = string.Create(text.Length + tabCount * extraChars, state: (tabCount, TabSize, text), static (span, state) => {
+						int numSpaces = state.tabCount * state.TabSize;
+						span[..numSpaces].Fill(' ');
+						state.text.AsSpan(state.tabCount).CopyTo(span[numSpaces..]);
+					});
 				}
 				if (startColumn > text.Length)
 				{
