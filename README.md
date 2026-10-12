@@ -1,3 +1,12 @@
+# ILSpy custom fork with Control Data Flow Graph
+
+Adds a new target language "IL CDFG" to visualize IL branching and stack flow.
+
+All code in this repo belongs to the original ILSpy project (https://github.com/icsharpcode/ILSpy), the graph itself is generated from my other project (https://github.com/bkookie/UselessModdingTools).
+
+[Original Readme]
+-------
+
 # ILSpy [![NuGet](https://img.shields.io/nuget/v/ICSharpCode.Decompiler.svg)](https://nuget.org/packages/ICSharpCode.Decompiler) ![Build ILSpy](https://github.com/icsharpcode/ILSpy/workflows/Build%20ILSpy/badge.svg?branch=master) [![Mastodon](https://img.shields.io/badge/dynamic/json?label=Mastodon&query=totalItems&url=https%3A%2F%2Fhachyderm.io%2Fusers%2Filspy%2Ffollowers.json&logo=mastodon&style=flat-square)](https://hachyderm.io/@ilspy) [![Bluesky](https://img.shields.io/badge/Bluesky-0285FF?logo=bluesky&logoColor=fff)](https://bsky.app/profile/ilspy.bsky.social) [![ILSpy VS extension](https://img.shields.io/badge/VS%20Extension-ILSpy-blue.svg)](https://visualstudiogallery.msdn.microsoft.com/8ef1d688-f80c-4380-8004-2ec7f814e7de) 
 
 ILSpy is the open-source, cross-platform .NET assembly browser and decompiler. The desktop UI runs on Windows, Linux, and macOS (built on [Avalonia](https://avaloniaui.net/)).
