@@ -6,6 +6,26 @@ All code in this repo belongs to the original ILSpy project (https://github.com/
 
 Forked from v11.1.0
 
+### Example
+```
+IL_0000: [1]                   ┌─ldarga.s op
+IL_0002: [1]               ┌─call instance valuetype [System.Reflection.Primitives]System.Reflection.Emit.OperandType [System.Reflection.Primitives]System.Reflection.Emit.OpCode::get_OperandType()
+IL_0007: [0]         ┌───brfalse.s IL_0033
+IL_0009: [1]         │         ┌─ldarga.s op
+IL_0011: [1]         │     ┌─call instance valuetype [System.Reflection.Primitives]System.Reflection.Emit.OperandType [System.Reflection.Primitives]System.Reflection.Emit.OpCode::get_OperandType()
+IL_0016: [2]         │     ├─ldc.i4.s 15
+IL_0018: [0]         ├───beq.s IL_0033
+IL_0020: [1]         │             ┌─ldarga.s op
+IL_0022: [1]         │         ┌─call instance valuetype [System.Reflection.Primitives]System.Reflection.Emit.OperandType [System.Reflection.Primitives]System.Reflection.Emit.OpCode::get_OperandType()
+IL_0027: [2]         │         ├─ldc.i4.s 11
+IL_0029: [1]         │   ┌───ceq
+IL_0031: [1]     ┌───│───┴───br.s IL_0034
+                 │   └────┐
+IL_0033: [1]     │     ┌─ldc.i4.1
+                 └────┐│
+IL_0034: [0]         ret
+```
+
 [Original Readme]
 -------
 
