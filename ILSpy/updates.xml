@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<updateInfo>
+	<band id="stable">
+		<latestVersion>1.0.0.9929</latestVersion>
+		<releaseTag>v1.0.0</releaseTag>
+		<downloadUrl>https://github.com/bkookie/ILSpy/releases/</downloadUrl>
+	</band>
+</updateInfo>
