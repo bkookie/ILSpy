@@ -114,6 +114,15 @@ namespace ICSharpCode.ILSpy.Options
 		[ObservableProperty]
 		bool highlightSymbolsUnderCaret = true;
 
+		[ObservableProperty]
+		bool showInstructionOffsetsInBase10;
+
+		[ObservableProperty]
+		bool showStackDepth;
+
+		[ObservableProperty]
+		bool leftAlignCommentsAndAnnotations;
+
 		public XName SectionName => "DisplaySettings";
 
 		public void LoadFromXml(XElement section)
@@ -144,6 +153,9 @@ namespace ICSharpCode.ILSpy.Options
 			EnableOmnibar = (bool?)section.Attribute(nameof(EnableOmnibar)) ?? false;
 			NavigateOnCtrlClick = (bool?)section.Attribute(nameof(NavigateOnCtrlClick)) ?? false;
 			HighlightSymbolsUnderCaret = (bool?)section.Attribute(nameof(HighlightSymbolsUnderCaret)) ?? true;
+			ShowInstructionOffsetsInBase10 = (bool?)section.Attribute(nameof(ShowInstructionOffsetsInBase10)) ?? false;
+			ShowStackDepth = (bool?)section.Attribute(nameof(ShowStackDepth)) ?? false;
+			LeftAlignCommentsAndAnnotations = (bool?)section.Attribute(nameof(LeftAlignCommentsAndAnnotations)) ?? false;
 		}
 
 		public XElement SaveToXml()
@@ -175,6 +187,9 @@ namespace ICSharpCode.ILSpy.Options
 			section.SetAttributeValue(nameof(EnableOmnibar), EnableOmnibar);
 			section.SetAttributeValue(nameof(NavigateOnCtrlClick), NavigateOnCtrlClick);
 			section.SetAttributeValue(nameof(HighlightSymbolsUnderCaret), HighlightSymbolsUnderCaret);
+			section.SetAttributeValue(nameof(ShowInstructionOffsetsInBase10), ShowInstructionOffsetsInBase10);
+			section.SetAttributeValue(nameof(ShowStackDepth), ShowStackDepth);
+			section.SetAttributeValue(nameof(LeftAlignCommentsAndAnnotations), LeftAlignCommentsAndAnnotations);
 			return section;
 		}
 	}

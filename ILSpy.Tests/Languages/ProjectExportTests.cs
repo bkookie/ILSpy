@@ -55,7 +55,7 @@ public class ProjectExportTests
 		// The base Language.ProjectFileExtension is the gate for File → Save Code's
 		// "save as project" filter. Default null = single-file-only for languages that
 		// haven't opted in.
-		var disassembler = new ILLanguage();
+		var disassembler = new ILLanguage(null);
 		((object?)disassembler.ProjectFileExtension).Should().BeNull(
 			"only project-aware languages override; the IL disassembler is single-file only");
 	}

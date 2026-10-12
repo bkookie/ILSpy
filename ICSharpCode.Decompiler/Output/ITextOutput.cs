@@ -46,6 +46,8 @@ namespace ICSharpCode.Decompiler
 		/// </summary>
 		void MarkDefinitionStart();
 		void MarkFoldEnd();
+
+		int TextLength { get; }
 	}
 
 	public static class TextOutputExtensions

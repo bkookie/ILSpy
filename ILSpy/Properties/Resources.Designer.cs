@@ -3726,5 +3726,29 @@ namespace ICSharpCode.ILSpy.Properties {
                 return ResourceManager.GetString("Window_ResetLayout", resourceCulture);
             }
         }
+
+		public static string ShowInstructionOffsetsInBase10 {
+			get {
+				return ResourceManager.GetString("ShowInstructionOffsetsInBase10", resourceCulture);
+			}
+		}
+
+		public static string ControlDataFlowGraph {
+			get {
+				return ResourceManager.GetString("ControlDataFlowGraph", resourceCulture);
+			}
+		}
+
+		public static string ShowStackDepth {
+			get {
+				return ResourceManager.GetString("ShowStackDepth", resourceCulture);
+			}
+		}
+
+		public static string LeftAlignCommentsAndAnnotations {
+			get {
+				return ResourceManager.GetString("LeftAlignCommentsAndAnnotations", resourceCulture);
+			}
+		}
     }
 }

@@ -51,36 +51,38 @@ namespace ICSharpCode.Decompiler.Disassembler
 	{
 		static readonly char[] _validNonLetterIdentifierCharacter = new char[] { '_', '$', '@', '?', '`', '.' };
 
-		public static string OffsetToString(int offset)
+		public static string OffsetToString(int offset, int maxDigits = 4, bool showOffsetInbase10 = false)
 		{
-			return string.Format("IL_{0:x4}", offset);
+			string format = showOffsetInbase10 ? "0000" : "x4";
+			return $"IL_{offset.ToString(format).PadLeft(maxDigits, '0')}";
 		}
 
-		public static string OffsetToString(long offset)
+		public static string OffsetToString(long offset, int maxDigits = 4, bool showOffsetInbase10 = false)
 		{
-			return string.Format("IL_{0:x4}", offset);
+			string format = showOffsetInbase10 ? "0000" : "x4";
+			return $"IL_{offset.ToString(format).PadLeft(maxDigits, '0')}";
 		}
 
-		public static void WriteOffsetReference(ITextOutput writer, int? offset)
+		public static void WriteOffsetReference(ITextOutput writer, int? offset, int maxDigits, bool showOffsetInbase10)
 		{
 			if (offset == null)
 				writer.Write("null");
 			else
-				writer.WriteLocalReference(OffsetToString(offset.Value), offset);
+				writer.WriteLocalReference(OffsetToString(offset.Value, maxDigits, showOffsetInbase10), offset);
 		}
 
-		public static void WriteTo(this ExceptionRegion exceptionHandler, MetadataFile module, MetadataGenericContext context, ITextOutput writer)
+		public static void WriteTo(this ExceptionRegion exceptionHandler, MetadataFile module, MetadataGenericContext context, ITextOutput writer, int maxDigits, bool showOffsetInbase10)
 		{
 			writer.Write(".try ");
-			WriteOffsetReference(writer, exceptionHandler.TryOffset);
+			WriteOffsetReference(writer, exceptionHandler.TryOffset, maxDigits, showOffsetInbase10);
 			writer.Write('-');
-			WriteOffsetReference(writer, exceptionHandler.TryOffset + exceptionHandler.TryLength);
+			WriteOffsetReference(writer, exceptionHandler.TryOffset + exceptionHandler.TryLength, maxDigits, showOffsetInbase10);
 			writer.Write(' ');
 			writer.Write(exceptionHandler.Kind.ToString().ToLowerInvariant());
 			if (exceptionHandler.FilterOffset != -1)
 			{
 				writer.Write(' ');
-				WriteOffsetReference(writer, exceptionHandler.FilterOffset);
+				WriteOffsetReference(writer, exceptionHandler.FilterOffset, maxDigits, showOffsetInbase10);
 				writer.Write(" handler ");
 			}
 			if (!exceptionHandler.CatchType.IsNil)
@@ -89,9 +91,9 @@ namespace ICSharpCode.Decompiler.Disassembler
 				exceptionHandler.CatchType.WriteTo(module, writer, context);
 			}
 			writer.Write(' ');
-			WriteOffsetReference(writer, exceptionHandler.HandlerOffset);
+			WriteOffsetReference(writer, exceptionHandler.HandlerOffset, maxDigits, showOffsetInbase10);
 			writer.Write('-');
-			WriteOffsetReference(writer, exceptionHandler.HandlerOffset + exceptionHandler.HandlerLength);
+			WriteOffsetReference(writer, exceptionHandler.HandlerOffset + exceptionHandler.HandlerLength, maxDigits, showOffsetInbase10);
 		}
 
 		static string ToInvariantCultureString(object value)

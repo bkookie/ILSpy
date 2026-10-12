@@ -135,7 +135,8 @@ namespace ICSharpCode.ILSpy.Commands
 
 		async Task ExecuteAsync()
 		{
-			var settings = AppEnv.AppComposition.TryGetExport<SettingsService>()?.CreateEffectiveDecompilerSettings()
+			var service = AppEnv.AppComposition.TryGetExport<SettingsService>();
+			var settings = service?.CreateEffectiveDecompilerSettings()
 				?? new ICSharpCode.Decompiler.DecompilerSettings();
 			// Run in a dedicated frozen tab so navigation cannot cancel this long run.
 			await dockWorkspace.RunInNewTabAsync("Disassembling all assemblies…", token => Task.Run(() => {
@@ -158,7 +159,7 @@ namespace ICSharpCode.ILSpy.Commands
 								CancellationToken = token,
 								FullDecompilation = true,
 							};
-							new ILLanguage().DecompileAssembly(asm, new PlainTextOutput(writer), options);
+							new ILLanguage(service).DecompileAssembly(asm, new PlainTextOutput(writer), options);
 						}
 						catch (Exception caught)
 						{

@@ -72,6 +72,31 @@ namespace ICSharpCode.Decompiler.Disassembler
 			set => methodBodyDisassembler.DebugInfo = value;
 		}
 
+		public bool ShowInstructionOffsetsInBase10 {
+			get => methodBodyDisassembler.ShowInstructionOffsetsInBase10;
+			set => methodBodyDisassembler.ShowInstructionOffsetsInBase10 = value;
+		}
+
+		public int TabSize {
+			get => methodBodyDisassembler.TabSize;
+			set => methodBodyDisassembler.TabSize = value;
+		}
+
+		public bool BuildControlDataFlowGraph {
+			get => methodBodyDisassembler.BuildControlDataFlowGraph;
+			set => methodBodyDisassembler.BuildControlDataFlowGraph = value;
+		}
+
+		public bool LeftAlignCommentsAndAnnotations {
+			get => methodBodyDisassembler.LeftAlignCommentsAndAnnotations;
+			set => methodBodyDisassembler.LeftAlignCommentsAndAnnotations = value;
+		}
+
+		public bool ShowStackDepth {
+			get => methodBodyDisassembler.ShowStackDepth;
+			set => methodBodyDisassembler.ShowStackDepth = value;
+		}
+
 		public bool ExpandMemberDefinitions { get; set; }
 
 		/// <summary>

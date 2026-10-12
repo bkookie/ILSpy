@@ -73,6 +73,9 @@ namespace ICSharpCode.ILSpy.Options
 			[nameof(DisplaySettings.IndentationUseTabs)] = DisplaySettingReaction.Redecompile,
 			[nameof(DisplaySettings.IndentationSize)] = DisplaySettingReaction.Redecompile,
 			[nameof(DisplaySettings.IndentationTabSize)] = DisplaySettingReaction.Redecompile,
+			[nameof(DisplaySettings.ShowInstructionOffsetsInBase10)] = DisplaySettingReaction.Redecompile,
+			[nameof(DisplaySettings.ShowStackDepth)] = DisplaySettingReaction.Redecompile,
+			[nameof(DisplaySettings.LeftAlignCommentsAndAnnotations)] = DisplaySettingReaction.Redecompile,
 
 			// Editor-only (DecompilerTextView applies these directly to the AvaloniaEdit control).
 			[nameof(DisplaySettings.SelectedFont)] = DisplaySettingReaction.EditorLive,

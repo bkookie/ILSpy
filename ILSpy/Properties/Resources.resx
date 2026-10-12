@@ -255,6 +255,9 @@ Are you sure you want to continue?</value>
   <data name="CollapseTreeNodes" xml:space="preserve">
     <value>Collapse all tree nodes</value>
   </data>
+  <data name="ControlDataFlowGraph" xml:space="preserve">
+    <value>Control Data Flow Graph</value>
+  </data>
   <data name="Copy" xml:space="preserve">
     <value>Copy</value>
   </data>
@@ -795,6 +798,9 @@ Are you sure you want to continue?</value>
   <data name="InvalidTargetFramework" xml:space="preserve">
     <value>Unknown target framework. Enter a moniker such as net48 or net6.0.</value>
   </data>
+  <data name="LeftAlignCommentsAndAnnotations" xml:space="preserve">
+    <value>Left align comments and annotations</value>
+  </data>
   <data name="ListDeleteConfirmation" xml:space="preserve">
     <value>Are you sure that you want to delete the selected assembly list?</value>
   </data>
@@ -1135,6 +1141,9 @@ Do you want to continue?</value>
   <data name="ShowInfoFromDebugSymbolsAvailable" xml:space="preserve">
     <value>Show info from debug symbols, if available</value>
   </data>
+  <data name="ShowInstructionOffsetsInBase10" xml:space="preserve">
+    <value>Show instruction offsets in base 10</value>
+  </data>
   <data name="ShowInternalTypesMembers" xml:space="preserve">
     <value>Show public, private and internal</value>
   </data>
@@ -1155,6 +1164,9 @@ Do you want to continue?</value>
   </data>
   <data name="ShowRawOffsetsAndBytesBeforeInstruction" xml:space="preserve">
     <value>Show raw offsets and bytes before each instruction</value>
+  </data>
+  <data name="ShowStackDepth" xml:space="preserve">
+    <value>Show stack depth</value>
   </data>
   <data name="ShowStateAfterThisStep" xml:space="preserve">
     <value>Show state after this step</value>

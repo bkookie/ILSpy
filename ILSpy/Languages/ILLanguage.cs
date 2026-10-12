@@ -32,9 +32,8 @@ using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.Output;
 using ICSharpCode.Decompiler.Solution;
 using ICSharpCode.Decompiler.TypeSystem;
-using ICSharpCode.ILSpyX;
-
 using ICSharpCode.ILSpy.TextView;
+using ICSharpCode.ILSpyX;
 
 namespace ICSharpCode.ILSpy.Languages
 {
@@ -42,6 +41,14 @@ namespace ICSharpCode.ILSpy.Languages
 	[Shared]
 	public class ILLanguage : Language
 	{
+		[method: ImportingConstructor]
+		public ILLanguage(SettingsService? settingsService)
+		{
+			SettingsService = settingsService!;
+		}
+
+		protected SettingsService SettingsService { get; }
+
 		protected bool detectControlStructure = true;
 
 		public override string Name => "IL";
@@ -66,6 +73,8 @@ namespace ICSharpCode.ILSpy.Languages
 				ShowRawRVAOffsetAndBytes = false,
 				ExpandMemberDefinitions = options.DecompilerSettings.ExpandMemberDefinitions,
 				DecodeCustomAttributeBlobs = false,
+				ShowInstructionOffsetsInBase10 = SettingsService?.DisplaySettings.ShowInstructionOffsetsInBase10 ?? false,
+				TabSize = SettingsService?.DisplaySettings.IndentationTabSize ?? 4,
 			};
 		}
 

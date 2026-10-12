@@ -38,6 +38,8 @@ namespace ICSharpCode.Decompiler
 		int line = 1;
 		int column = 1;
 
+		public int TextLength => 0; // Just to satisfy the interface
+
 		public string IndentationString { get; set; } = "\t";
 
 		public PlainTextOutput(TextWriter writer)
@@ -257,5 +259,7 @@ namespace ICSharpCode.Decompiler
 		{
 			actions.Add(target => target.WriteReference(member, text, isDefinition));
 		}
+
+		public int TextLength => 0;
 	}
 }

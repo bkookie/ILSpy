@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Threading;
@@ -27,6 +28,9 @@ using ICSharpCode.Decompiler.DebugInfo;
 using ICSharpCode.Decompiler.IL;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.Util;
+
+using CdfgGraph = System.Collections.Generic.List<(int stackDepth, System.Collections.Generic.List<string> pipes)>;
+using CdfgItem = (int stackDepth, System.Collections.Generic.List<string> pipes);
 
 namespace ICSharpCode.Decompiler.Disassembler
 {
@@ -67,6 +71,37 @@ namespace ICSharpCode.Decompiler.Disassembler
 		/// Optional provider for sequence points.
 		/// </summary>
 		public IDebugInfoProvider DebugInfo { get; set; }
+
+		public bool ShowInstructionOffsetsInBase10 { get; set; }
+
+		public int TabSize { get; set; }
+
+		public bool BuildControlDataFlowGraph { get; set; }
+
+		public bool LeftAlignCommentsAndAnnotations { get; set; }
+
+		public bool ShowStackDepth { get; set; }
+
+		const string uselessDLL = "UselessModdingTools.dll";
+		delegate string GraphMethod(MetadataReader reader, MethodDefinition mdef, MethodBodyBlock body, int graphType, out int maxOffset, out int maxStackDepth, out CdfgGraph cdfgGraph);
+		static GraphMethod graph {
+			get {
+				if (field == null)
+				{
+					// Net9.0 assembly, need to use reflection
+					Assembly uselessAssembly = Assembly.LoadFrom(uselessDLL);
+					Type type = uselessAssembly.GetType("UselessModdingTools.IL.ILVisualizer");
+					Type graphTypeType = uselessAssembly.GetType("UselessModdingTools.IL.GraphType");
+					Type outInt = typeof(int).MakeByRefType();
+					MethodInfo methodInfo = type.GetMethod("GraphMethod", [typeof(MetadataReader), typeof(MethodDefinition), typeof(MethodBodyBlock), graphTypeType, outInt, outInt, typeof(CdfgGraph).MakeByRefType()]);
+					field = (GraphMethod)methodInfo.CreateDelegate(typeof(GraphMethod));
+				}
+				return field;
+			}
+		}
+		string pipePrefix = ""; // Used to align continuation pipes on inserted lines
+		int maxStackDepthLen = 0;
+		int maxOffsetLen = 0;
 
 		IList<DebugInfo.SequencePoint> sequencePoints;
 		int nextSequencePointIndex;
@@ -128,20 +163,35 @@ namespace ICSharpCode.Decompiler.Disassembler
 
 			sequencePoints = DebugInfo?.GetSequencePoints(handle) ?? EmptyList<DebugInfo.SequencePoint>.Instance;
 			nextSequencePointIndex = 0;
+
+			CdfgGraph cdfgGraph = null;
+			int instructionIndex = 0;
+			if (BuildControlDataFlowGraph)
+			{
+				graph(metadata, methodDefinition, body, graphType: 1, out int maxOffset, out int maxStackDepth, out cdfgGraph);
+				int additionalSpace = ShowRawRVAOffsetAndBytes ? 36 : 0;
+				maxOffsetLen = DisassemblerHelpers.OffsetToString(maxOffset).Length - 3; // ignore "IL_" prefix
+				additionalSpace += 3 + 2; // include the prefix "IL_" and postfix ": " here
+				maxStackDepthLen = ShowStackDepth ? maxStackDepth.ToString().Length : 0;
+				additionalSpace += ShowStackDepth ? 3 : 0; // braces & space "[] "
+				pipePrefix = new string(' ', maxOffsetLen + maxStackDepthLen + additionalSpace);
+			}
+
 			if (DetectControlStructure && blob.Length > 0)
 			{
 				blob.Reset();
 				BitSet branchTargets = new(blob.Length);
 				ILParser.SetBranchTargets(ref blob, branchTargets);
 				blob.Reset();
-				WriteStructureBody(new ILStructure(module, handle, genericContext, body), branchTargets, ref blob, methodDefinition.RelativeVirtualAddress + headerSize);
+				WriteStructureBody(new ILStructure(module, handle, genericContext, body), branchTargets, ref blob, methodDefinition.RelativeVirtualAddress + headerSize, cdfgGraph, ref instructionIndex);
 			}
 			else
 			{
 				while (blob.RemainingBytes > 0)
 				{
 					cancellationToken.ThrowIfCancellationRequested();
-					WriteInstruction(output, module, handle, ref blob, methodDefinition.RelativeVirtualAddress);
+					WriteInstruction(output, module, handle, ref blob, methodDefinition.RelativeVirtualAddress, cdfgGraph?[instructionIndex]);
+					instructionIndex++;
 				}
 				WriteExceptionHandlers(module, handle, body);
 			}
@@ -207,29 +257,41 @@ namespace ICSharpCode.Decompiler.Disassembler
 				output.WriteLine();
 				foreach (var eh in handlers)
 				{
-					eh.WriteTo(module, genericContext, output);
+					eh.WriteTo(module, genericContext, output, maxOffsetLen, ShowInstructionOffsetsInBase10);
 					output.WriteLine();
 				}
 			}
 		}
 
-		void WriteStructureHeader(ILStructure s)
+		void WriteStructureHeader(ILStructure s, string pipes)
 		{
 			switch (s.Type)
 			{
 				case ILStructureType.Loop:
+					int startLen = output.TextLength;
+					if (!LeftAlignCommentsAndAnnotations)
+					{
+						WritePipes(pipes);
+					}
 					output.Write("// loop start");
 					if (s.LoopEntryPointOffset >= 0)
 					{
 						output.Write(" (head: ");
-						DisassemblerHelpers.WriteOffsetReference(output, s.LoopEntryPointOffset);
+						DisassemblerHelpers.WriteOffsetReference(output, s.LoopEntryPointOffset, maxOffsetLen, ShowInstructionOffsetsInBase10);
 						output.Write(')');
 					}
-					output.WriteLine();
+					if (LeftAlignCommentsAndAnnotations)
+					{
+						WritePipesLine(output.TextLength - startLen - 1, pipes); // idk why need -1 here
+					}
+					else
+					{
+						output.WriteLine();
+					}
 					break;
 				case ILStructureType.Try:
-					output.WriteLine(".try");
-					output.WriteLine("{");
+					WritePipesLine(".try", pipes);
+					WritePipesLine("{", pipes);
 					break;
 				case ILStructureType.Handler:
 					switch (s.ExceptionHandler.Kind)
@@ -238,40 +300,60 @@ namespace ICSharpCode.Decompiler.Disassembler
 							// handler block of filter block has no header
 							break;
 						case ExceptionRegionKind.Catch:
+							int startLen2 = output.TextLength;
+							if (!LeftAlignCommentsAndAnnotations)
+							{
+								WritePipes(pipes);
+							}
 							output.Write("catch");
 							if (!s.ExceptionHandler.CatchType.IsNil)
 							{
 								output.Write(' ');
 								s.ExceptionHandler.CatchType.WriteTo(s.Module, output, s.GenericContext, ILNameSyntax.TypeName);
 							}
-							output.WriteLine();
+							if (LeftAlignCommentsAndAnnotations)
+							{
+								WritePipesLine(output.TextLength - startLen2 - 1, pipes);
+							}
+							else
+							{
+								output.WriteLine();
+							}
 							break;
 						case ExceptionRegionKind.Finally:
-							output.WriteLine("finally");
+							WritePipesLine("finally", pipes);
 							break;
 						case ExceptionRegionKind.Fault:
-							output.WriteLine("fault");
+							WritePipesLine("fault", pipes);
 							break;
 						default:
 							throw new ArgumentOutOfRangeException();
 					}
-					output.WriteLine("{");
+					WritePipesLine("{", pipes);
 					break;
 				case ILStructureType.Filter:
-					output.WriteLine("filter");
-					output.WriteLine("{");
+					WritePipesLine("filter", pipes);
+					WritePipesLine("{", pipes);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
-			output.Indent();
+			if (!BuildControlDataFlowGraph)
+				output.Indent();
 		}
 
 		void WriteStructureBody(ILStructure s, BitSet branchTargets, ref BlobReader body, int methodRva)
 		{
+			int _ = 0;
+			WriteStructureBody(s, branchTargets, ref body, methodRva, null, ref _);
+		}
+
+		void WriteStructureBody(ILStructure s, BitSet branchTargets, ref BlobReader body, int methodRva, CdfgGraph cdfgArray, ref int instructionIndex)
+		{
 			bool isFirstInstructionInStructure = true;
 			bool prevInstructionWasBranch = false;
 			int childIndex = 0;
+
 			while (body.RemainingBytes > 0 && body.Offset < s.EndOffset)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
@@ -279,19 +361,19 @@ namespace ICSharpCode.Decompiler.Disassembler
 				if (childIndex < s.Children.Count && s.Children[childIndex].StartOffset <= offset && offset < s.Children[childIndex].EndOffset)
 				{
 					ILStructure child = s.Children[childIndex++];
-					WriteStructureHeader(child);
-					WriteStructureBody(child, branchTargets, ref body, methodRva);
-					WriteStructureFooter(child);
+					WriteStructureHeader(child, cdfgArray?[instructionIndex].pipes[0]);
+					WriteStructureBody(child, branchTargets, ref body, methodRva, cdfgArray, ref instructionIndex);
+					WriteStructureFooter(child, cdfgArray?[instructionIndex].pipes[0]);
 				}
 				else
 				{
-					if (!isFirstInstructionInStructure && (prevInstructionWasBranch || branchTargets[offset]))
+					if (!BuildControlDataFlowGraph && !isFirstInstructionInStructure && (prevInstructionWasBranch || branchTargets[offset]))
 					{
 						output.WriteLine(); // put an empty line after branches, and in front of branch targets
 					}
 					var currentOpCode = ILParser.DecodeOpCode(ref body);
 					body.Offset = offset; // reset IL stream
-					WriteInstruction(output, module, s.MethodHandle, ref body, methodRva);
+					WriteInstruction(output, module, s.MethodHandle, ref body, methodRva, cdfgArray?[instructionIndex++]);
 					prevInstructionWasBranch = currentOpCode.IsBranch()
 						|| currentOpCode.IsReturn()
 						|| currentOpCode == ILOpCode.Throw
@@ -302,29 +384,71 @@ namespace ICSharpCode.Decompiler.Disassembler
 			}
 		}
 
-		void WriteStructureFooter(ILStructure s)
+		void WriteStructureFooter(ILStructure s, string pipes)
 		{
-			output.Unindent();
+			if (!BuildControlDataFlowGraph)
+				output.Unindent();
 			switch (s.Type)
 			{
 				case ILStructureType.Loop:
-					output.WriteLine("// end loop");
+					WritePipesLine("// end loop", pipes);
 					break;
 				case ILStructureType.Try:
-					output.WriteLine("} // end .try");
+					WritePipesLine("} // end .try", pipes);
 					break;
 				case ILStructureType.Handler:
-					output.WriteLine("} // end handler");
+					WritePipesLine("} // end handler", pipes);
 					break;
 				case ILStructureType.Filter:
-					output.WriteLine("} // end filter");
+					WritePipesLine("} // end filter", pipes);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
 		}
 
+		protected void WritePipes(string pipes)
+		{
+			if (BuildControlDataFlowGraph)
+			{
+				output.Write(pipePrefix);
+				output.Write(pipes);
+			}
+		}
+
+		protected void WritePipesLine(string text, string pipes)
+		{
+			if (LeftAlignCommentsAndAnnotations)
+			{
+				text = text.TrimEnd();
+				output.Write(text);
+				WritePipesLine(text.Length, pipes);
+			}
+			else
+			{
+				WritePipes(pipes);
+				output.WriteLine(text);
+			}
+		}
+
+		protected void WritePipesLine(int textColumn, string pipes)
+		{
+			if (BuildControlDataFlowGraph && pipes != null)
+			{
+				int startIndex = Math.Min(textColumn, pipePrefix.Length);
+				int startIndex2 = Math.Min(pipes.Length, Math.Max(0, textColumn - pipePrefix.Length));
+				output.Write(pipePrefix.Substring(startIndex));
+				output.Write(pipes.Substring(startIndex2));
+			}
+			output.WriteLine();
+		}
+
 		protected virtual void WriteInstruction(ITextOutput output, MetadataFile metadataFile, MethodDefinitionHandle methodHandle, ref BlobReader blob, int methodRva)
+		{
+			WriteInstruction(output, metadataFile, methodHandle, ref blob, methodRva, null);
+		}
+
+		protected virtual void WriteInstruction(ITextOutput output, MetadataFile metadataFile, MethodDefinitionHandle methodHandle, ref BlobReader blob, int methodRva, CdfgItem? cdfgItem)
 		{
 			var metadata = metadataFile.Metadata;
 			int offset = blob.Offset;
@@ -336,7 +460,7 @@ namespace ICSharpCode.Decompiler.Disassembler
 					output.Write("// sequence point: ");
 					if (sp.Offset != offset)
 					{
-						output.Write("!! at " + DisassemblerHelpers.OffsetToString(sp.Offset) + " !!");
+						output.Write("!! at " + DisassemblerHelpers.OffsetToString(sp.Offset, maxOffsetLen, ShowInstructionOffsetsInBase10) + " !!");
 					}
 					if (sp.IsHidden)
 					{
@@ -353,9 +477,30 @@ namespace ICSharpCode.Decompiler.Disassembler
 			OperandType opType = opCode.GetOperandType();
 			if (opCode.IsDefined() && opType.OperandSize() <= blob.RemainingBytes)
 			{
+				if (cdfgItem != null)
+				{
+					// Skip first index (that is for continuation piping, ie for filling extra lines inserted by comments/header/footers)
+					// Skip last index as well (that is for the instruction itself.
+					// Print everything inbetween (this is used for branching)
+					for (int i = 1; i < cdfgItem.Value.pipes.Count - 1; i++)
+					{
+						output.Write(pipePrefix);
+						output.WriteLine(cdfgItem.Value.pipes[i]);
+					}
+				}
 				WriteRVA(blob, offset + methodRva, opCode);
-				output.WriteLocalReference(DisassemblerHelpers.OffsetToString(offset), offset, isDefinition: true);
+				output.WriteLocalReference(DisassemblerHelpers.OffsetToString(offset, maxOffsetLen, ShowInstructionOffsetsInBase10), offset, isDefinition: true);
 				output.Write(": ");
+				if (cdfgItem != null)
+				{
+					if (ShowStackDepth)
+					{
+						output.Write('[');
+						output.Write(cdfgItem.Value.stackDepth.ToString().PadLeft(maxStackDepthLen));
+						output.Write("] ");
+					}
+					output.Write(cdfgItem.Value.pipes[^1]);
+				}
 				WriteOpCode(opCode);
 				switch (opCode.GetOperandType())
 				{
@@ -363,7 +508,7 @@ namespace ICSharpCode.Decompiler.Disassembler
 					case OperandType.ShortBrTarget:
 						output.Write(' ');
 						int targetOffset = ILParser.DecodeBranchTarget(ref blob, opCode);
-						output.WriteLocalReference($"IL_{targetOffset:x4}", targetOffset);
+						output.WriteLocalReference(DisassemblerHelpers.OffsetToString(targetOffset, maxOffsetLen, ShowInstructionOffsetsInBase10), targetOffset);
 						break;
 					case OperandType.Field:
 					case OperandType.Method:
@@ -504,7 +649,7 @@ namespace ICSharpCode.Decompiler.Disassembler
 							{
 								output.Write("                 ");
 							}
-							output.WriteLocalReference($"IL_{targets[i]:x4}", targets[i]);
+							output.WriteLocalReference(DisassemblerHelpers.OffsetToString(targets[i], maxOffsetLen, ShowInstructionOffsetsInBase10), targets[i]);
 						}
 						output.Write(")");
 						break;
@@ -545,7 +690,7 @@ namespace ICSharpCode.Decompiler.Disassembler
 						output.Write($"0x{offset + methodRva:X8} {(ushort)opCode >> 8:X2}");
 						output.Write("                 */ ");
 					}
-					output.WriteLocalReference(DisassemblerHelpers.OffsetToString(offset), offset, isDefinition: true);
+					output.WriteLocalReference(DisassemblerHelpers.OffsetToString(offset, maxOffsetLen, ShowInstructionOffsetsInBase10), offset, isDefinition: true);
 					output.Write(": ");
 					// split 16-bit value into two emitbyte directives
 					output.WriteLine($".emitbyte 0x{(byte)(opCodeValue >> 8):x}");
@@ -556,7 +701,7 @@ namespace ICSharpCode.Decompiler.Disassembler
 						output.Write("                 */ ");
 					}
 					// add label
-					output.WriteLocalReference(DisassemblerHelpers.OffsetToString(offset + 1), offset + 1, isDefinition: true);
+					output.WriteLocalReference(DisassemblerHelpers.OffsetToString(offset + 1, maxOffsetLen, ShowInstructionOffsetsInBase10), offset + 1, isDefinition: true);
 					output.Write(": ");
 					output.Write($".emitbyte 0x{(byte)(opCodeValue & 0xFF):x}");
 				}
@@ -568,7 +713,7 @@ namespace ICSharpCode.Decompiler.Disassembler
 						output.Write($"0x{offset + methodRva:X8} {(ushort)opCode & 0xFF:X2}");
 						output.Write("                 */ ");
 					}
-					output.WriteLocalReference(DisassemblerHelpers.OffsetToString(offset), offset, isDefinition: true);
+					output.WriteLocalReference(DisassemblerHelpers.OffsetToString(offset, maxOffsetLen, ShowInstructionOffsetsInBase10), offset, isDefinition: true);
 					output.Write(": ");
 					output.Write($".emitbyte 0x{(byte)opCodeValue:x}");
 				}

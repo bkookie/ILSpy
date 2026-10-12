@@ -18,49 +18,49 @@
 			<StackPanel Orientation="Horizontal" Spacing="8">
 				<TextBlock VerticalAlignment="Center" Text="{x:Static res:Resources.DisplaySettingsPanel_Theme}" />
 				<ComboBox MinWidth="120" ItemsSource="{Binding AllThemes}"
-				          SelectedItem="{Binding SessionSettings.Theme, Mode=TwoWay}" />
+							SelectedItem="{Binding SessionSettings.Theme, Mode=TwoWay}" />
 			</StackPanel>
 			<Grid ColumnDefinitions="Auto,*,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="4">
 				<TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
-				           Text="{x:Static res:Resources.Font}" />
+							Text="{x:Static res:Resources.Font}" />
 				<ComboBox Grid.Row="0" Grid.Column="1" MinWidth="200"
-				          ItemsSource="{Binding AvailableFonts}"
-				          SelectedItem="{Binding Settings.SelectedFont, Mode=TwoWay}" />
+							ItemsSource="{Binding AvailableFonts}"
+							SelectedItem="{Binding Settings.SelectedFont, Mode=TwoWay}" />
 				<TextBlock Grid.Row="0" Grid.Column="2" VerticalAlignment="Center"
-				           Text="{x:Static res:Resources.Size}" />
+							Text="{x:Static res:Resources.Size}" />
 				<!-- Edits in points (the unit every Windows font dialog uses); the viewmodel
-				     converts to the device-independent pixels DisplaySettings stores. -->
+				    converts to the device-independent pixels DisplaySettings stores. -->
 				<ComboBox Grid.Row="0" Grid.Column="3" Width="100" x:Name="fontSizeComboBox"
-				          IsEditable="True"
-				          ItemsSource="{Binding FontSizes}"
-				          Text="{Binding SelectedFontSizePoints, Mode=TwoWay}"
-				          LostFocus="FontSizeBox_LostFocus" />
+							IsEditable="True"
+							ItemsSource="{Binding FontSizes}"
+							Text="{Binding SelectedFontSizePoints, Mode=TwoWay}"
+							LostFocus="FontSizeBox_LostFocus" />
 				<Border Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
-				        BorderBrush="{DynamicResource ILSpy.ChromeBorder}" BorderThickness="1" Padding="6" Margin="0,2,0,0">
+						BorderBrush="{DynamicResource ILSpy.ChromeBorder}" BorderThickness="1" Padding="6" Margin="0,2,0,0">
 					<!-- FontFamily binds to a derived FontFamily property because Avalonia's
-					     runtime binding pipeline doesn't coerce string → FontFamily (the
-					     implicit conversion only fires at XAML parse time). The viewmodel
-					     projects Settings.SelectedFont through the right type and re-fires
-					     PropertyChanged when the picker selection changes. -->
+					    runtime binding pipeline doesn't coerce string → FontFamily (the
+					    implicit conversion only fires at XAML parse time). The viewmodel
+					    projects Settings.SelectedFont through the right type and re-fires
+					    PropertyChanged when the picker selection changes. -->
 					<TextBlock Text="The quick brown fox jumps over the lazy dog"
-					           FontFamily="{Binding CurrentFontFamily}"
-					           FontSize="{Binding Settings.SelectedFontSize}" />
+								FontFamily="{Binding CurrentFontFamily}"
+								FontSize="{Binding Settings.SelectedFontSize}" />
 				</Border>
 			</Grid>
 
 			<HeaderedContentControl Header="{x:Static res:Resources.Indentation}">
 				<StackPanel Spacing="4" Margin="12,4,0,0">
 					<CheckBox IsChecked="{Binding Settings.IndentationUseTabs, Mode=TwoWay}"
-					          Content="{x:Static res:Resources.UseTabsInsteadOfSpaces}" />
+								Content="{x:Static res:Resources.UseTabsInsteadOfSpaces}" />
 					<Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6">
 						<TextBlock Grid.Column="0" VerticalAlignment="Center"
-						           Text="{x:Static res:Resources.IndentSize}" />
+									Text="{x:Static res:Resources.IndentSize}" />
 						<NumericUpDown Grid.Column="1" Width="80" Minimum="1" Maximum="16"
-						               Value="{Binding Settings.IndentationSize, Mode=TwoWay}" />
+										Value="{Binding Settings.IndentationSize, Mode=TwoWay}" />
 						<TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="12,0,0,0"
-						           Text="{x:Static res:Resources.TabSize}" />
+									Text="{x:Static res:Resources.TabSize}" />
 						<NumericUpDown Grid.Column="3" Width="80" Minimum="1" Maximum="16"
-						               Value="{Binding Settings.IndentationTabSize, Mode=TwoWay}" />
+										Value="{Binding Settings.IndentationTabSize, Mode=TwoWay}" />
 					</Grid>
 				</StackPanel>
 			</HeaderedContentControl>
@@ -93,37 +93,48 @@
 					          Content="{x:Static res:Resources.ShowRawOffsetsAndBytesBeforeInstruction}" />
 					<CheckBox IsChecked="{Binding Settings.DecodeCustomAttributeBlobs, Mode=TwoWay}"
 					          Content="{x:Static res:Resources.DecodeCustomAttributeBlobs}" />
+					<CheckBox IsChecked="{Binding Settings.ShowInstructionOffsetsInBase10, Mode=TwoWay}"
+								Content="{x:Static res:Resources.ShowInstructionOffsetsInBase10}" />
+				</StackPanel>
+			</HeaderedContentControl>
+
+			<HeaderedContentControl Header="{x:Static res:Resources.ControlDataFlowGraph}">
+				<StackPanel Spacing="2" Margin="12,4,0,0">
+					<CheckBox IsChecked="{Binding Settings.ShowStackDepth, Mode=TwoWay}"
+								Content="{x:Static res:Resources.ShowStackDepth}" />
+					<CheckBox IsChecked="{Binding Settings.LeftAlignCommentsAndAnnotations, Mode=TwoWay}"
+								Content="{x:Static res:Resources.LeftAlignCommentsAndAnnotations}" />
 				</StackPanel>
 			</HeaderedContentControl>
 
 			<HeaderedContentControl Header="{x:Static res:Resources.TreeViewOptions}">
 				<StackPanel Spacing="2" Margin="12,4,0,0">
 					<CheckBox IsChecked="{Binding Settings.ShowMetadataTokens, Mode=TwoWay}"
-					          Content="{x:Static res:Resources.ShowMetadataTokens}" />
+								Content="{x:Static res:Resources.ShowMetadataTokens}" />
 					<CheckBox IsChecked="{Binding Settings.ShowMetadataTokensInBase10, Mode=TwoWay}"
-					          Content="{x:Static res:Resources.ShowMetadataTokensInBase10}" />
+								Content="{x:Static res:Resources.ShowMetadataTokensInBase10}" />
 					<CheckBox IsChecked="{Binding Settings.HideEmptyMetadataTables, Mode=TwoWay}"
-					          Content="{x:Static res:Resources.HideEmptyMetadataTables}" />
+								Content="{x:Static res:Resources.HideEmptyMetadataTables}" />
 					<CheckBox IsChecked="{Binding Settings.UseNestedNamespaceNodes, Mode=TwoWay}"
-					          Content="{x:Static res:Resources.UseNestedNamespaceNodes}" />
+								Content="{x:Static res:Resources.UseNestedNamespaceNodes}" />
 				</StackPanel>
 			</HeaderedContentControl>
 
 			<HeaderedContentControl Header="Tab options">
 				<StackPanel Spacing="2" Margin="12,4,0,0">
 					<CheckBox IsChecked="{Binding SessionSettings.MultiLineDocumentTabs, Mode=TwoWay}"
-					          Content="Enable multiple rows in tab strip" />
+								Content="Enable multiple rows in tab strip" />
 					<CheckBox IsChecked="{Binding SessionSettings.MouseWheelTogglesTabStripRows, Mode=TwoWay}"
-					          Content="Mouse wheel scroll toggles single/multiple row tab strip" />
+								Content="Mouse wheel scroll toggles single/multiple row tab strip" />
 					<CheckBox IsChecked="{Binding Settings.EnableOmnibar, Mode=TwoWay}"
-					          Content="{x:Static res:Resources.ShowOmnibar}" />
+								Content="{x:Static res:Resources.ShowOmnibar}" />
 				</StackPanel>
 			</HeaderedContentControl>
 
 			<HeaderedContentControl Header="{x:Static res:Resources.Other}">
 				<StackPanel Spacing="2" Margin="12,4,0,0">
 					<CheckBox IsChecked="{Binding Settings.SortResults, Mode=TwoWay}"
-					          Content="{x:Static res:Resources.SortResultsFitness}" />
+								Content="{x:Static res:Resources.SortResultsFitness}" />
 				</StackPanel>
 			</HeaderedContentControl>
 			</StackPanel>

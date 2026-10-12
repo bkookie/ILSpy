@@ -129,6 +129,8 @@ namespace ICSharpCode.Decompiler.Tests.Output
 			{
 				FoldEndCount++;
 			}
+
+			public int TextLength => 0;
 		}
 
 		// The module must stay alive until the caller is done with the recorded reference

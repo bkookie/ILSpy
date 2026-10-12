@@ -36,10 +36,11 @@ using ICSharpCode.Decompiler.Disassembler;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
+using ICSharpCode.ILSpy.TextView;
 using ICSharpCode.ILSpyX;
 using ICSharpCode.ILSpyX.Extensions;
 
-using ICSharpCode.ILSpy.TextView;
+using CdfgItem = (int stackDepth, System.Collections.Generic.List<string> pipes);
 
 namespace ICSharpCode.ILSpy.Languages
 {
@@ -52,13 +53,13 @@ namespace ICSharpCode.ILSpy.Languages
 	[Export(typeof(Language))]
 	[Shared]
 	[method: ImportingConstructor]
-	class CSharpILMixedLanguage(SettingsService settingsService) : ILLanguage
+	class CSharpILMixedLanguage(SettingsService settingsService) : ILLanguage(settingsService)
 	{
 		public override string Name => "IL with C#";
 
 		protected override ReflectionDisassembler CreateDisassembler(ITextOutput output, DecompilationOptions options)
 		{
-			var displaySettings = settingsService.DisplaySettings;
+			var displaySettings = SettingsService.DisplaySettings;
 			return new ReflectionDisassembler(output,
 				new MixedMethodBodyDisassembler(output, options) {
 					DetectControlStructure = detectControlStructure,
@@ -69,7 +70,9 @@ namespace ICSharpCode.ILSpy.Languages
 				ShowMetadataTokensInBase10 = displaySettings.ShowMetadataTokensInBase10,
 				ShowRawRVAOffsetAndBytes = displaySettings.ShowRawOffsetsAndBytesBeforeInstruction,
 				ExpandMemberDefinitions = options.DecompilerSettings.ExpandMemberDefinitions,
-				DecodeCustomAttributeBlobs = displaySettings.DecodeCustomAttributeBlobs
+				DecodeCustomAttributeBlobs = displaySettings.DecodeCustomAttributeBlobs,
+				ShowInstructionOffsetsInBase10 = displaySettings.ShowInstructionOffsetsInBase10,
+				TabSize = displaySettings.IndentationTabSize
 			};
 		}
 
@@ -124,9 +127,14 @@ namespace ICSharpCode.ILSpy.Languages
 
 			protected override void WriteInstruction(ITextOutput output, MetadataFile metadata, MethodDefinitionHandle methodHandle, ref BlobReader blob, int methodRva)
 			{
+				WriteInstruction(output, metadata, methodHandle, ref blob, methodRva, null);
+			}
+
+			protected override void WriteInstruction(ITextOutput output, MetadataFile metadata, MethodDefinitionHandle methodHandle, ref BlobReader blob, int methodRva, CdfgItem? cdfgItem)
+			{
 				if (sequencePoints is null || codeLines is null)
 				{
-					base.WriteInstruction(output, metadata, methodHandle, ref blob, methodRva);
+					base.WriteInstruction(output, metadata, methodHandle, ref blob, methodRva, cdfgItem);
 					return;
 				}
 				int index = sequencePoints.BinarySearch(blob.Offset, seq => seq.Offset);
@@ -147,27 +155,64 @@ namespace ICSharpCode.ILSpy.Languages
 									startColumn = info.StartColumn;
 								if (line == info.EndLine)
 									endColumn = info.EndColumn;
-								WriteHighlightedCommentLine(highlightingOutput, text, startColumn - 1, endColumn - 1, info.StartLine == info.EndLine);
+								WriteHighlightedCommentLine(highlightingOutput, text, startColumn - 1, endColumn - 1, info.StartLine == info.EndLine, cdfgItem?.pipes?[0]);
 							}
 							else
-								WriteCommentLine(output, codeLines[line - 1]);
+								WriteCommentLine(output, codeLines[line - 1], cdfgItem?.pipes?[0]);
 						}
 					}
 					else
 					{
+						if (!LeftAlignCommentsAndAnnotations)
+						{
+							WritePipes(cdfgItem?.pipes?[0]);
+						}
+						int startLen = output.TextLength;
 						output.Write("// ");
 						highlightingOutput?.BeginSpan(gray);
-						output.WriteLine("(no C# code)");
+						output.Write("(no C# code)");
 						highlightingOutput?.EndSpan();
+						if (LeftAlignCommentsAndAnnotations)
+						{
+							WritePipesLine(output.TextLength - startLen - 1, cdfgItem?.pipes?[0]);
+						}
+						else
+						{
+							output.WriteLine();
+						}
 					}
 				}
-				base.WriteInstruction(output, metadata, methodHandle, ref blob, methodRva);
+				base.WriteInstruction(output, metadata, methodHandle, ref blob, methodRva, cdfgItem);
 			}
 
 			HighlightingColor gray = new HighlightingColor { Foreground = new SimpleHighlightingBrush(Colors.DarkGray) };
 
-			void WriteHighlightedCommentLine(ISmartTextOutput output, string text, int startColumn, int endColumn, bool isSingleLine)
+			void WriteHighlightedCommentLine(ISmartTextOutput output, string text, int startColumn, int endColumn, bool isSingleLine, string? pipes)
 			{
+				int startLen = output.TextLength;
+				if (BuildControlDataFlowGraph && LeftAlignCommentsAndAnnotations && !isSingleLine) // singleLine already strips the leading tabs
+				{
+					// tabs cause havoc with alignment
+					int tabCount = 0;
+					int incStartCount = 0;
+					int incEndCount = 0;
+					for (int i = 0; i < text.Length; i++)
+					{
+						if (text[i] == '\t')
+						{
+							tabCount++;
+							if (i <= startColumn)
+								incStartCount++;
+							if (i <= endColumn)
+								incEndCount++;
+						}
+						else
+							break;
+					}
+					text = new string(' ', TabSize * tabCount) + text[tabCount..];
+					startColumn += incStartCount * (TabSize - 1);
+					endColumn += incEndCount * (TabSize - 1);
+				}
 				if (startColumn > text.Length)
 				{
 					Debug.Fail("startColumn is invalid");
@@ -177,6 +222,10 @@ namespace ICSharpCode.ILSpy.Languages
 				{
 					Debug.Fail("endColumn is invalid");
 					endColumn = text.Length;
+				}
+				if (!LeftAlignCommentsAndAnnotations)
+				{
+					WritePipes(pipes);
 				}
 				output.Write("// ");
 				output.BeginSpan(gray);
@@ -189,12 +238,19 @@ namespace ICSharpCode.ILSpy.Languages
 				output.BeginSpan(gray);
 				output.Write(text.AsSpan(endColumn));
 				output.EndSpan();
-				output.WriteLine();
+				if (LeftAlignCommentsAndAnnotations)
+				{
+					WritePipesLine(output.TextLength - startLen - 1, pipes);
+				}
+				else
+				{
+					output.WriteLine();
+				}
 			}
 
-			void WriteCommentLine(ITextOutput output, string text)
+			void WriteCommentLine(ITextOutput output, string text, string? pipes)
 			{
-				output.WriteLine("// " + text);
+				WritePipesLine("// " + text, pipes);
 			}
 		}
 	}
