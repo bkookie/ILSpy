@@ -35,9 +35,10 @@ namespace ICSharpCode.ILSpy.Updates
 	/// </summary>
 	public static class AppUpdateService
 	{
-		public static readonly Version CurrentVersion = new(
-			DecompilerVersionInfo.Major + "." + DecompilerVersionInfo.Minor + "." +
-			DecompilerVersionInfo.Build + "." + DecompilerVersionInfo.Revision);
+		public static readonly Version CurrentVersion = new(1, 0, 0, int.Parse(DecompilerVersionInfo.Revision));
+		//public static readonly Version CurrentVersion = new(
+		//	DecompilerVersionInfo.Major + "." + DecompilerVersionInfo.Minor + "." +
+		//	DecompilerVersionInfo.Build + "." + DecompilerVersionInfo.Revision);
 	}
 
 	/// <summary>Result of a successful <see cref="UpdateService.GetLatestVersionAsync"/> poll.</summary>
@@ -55,8 +56,8 @@ namespace ICSharpCode.ILSpy.Updates
 	/// </summary>
 	public static class UpdateService
 	{
-		const string ReleaseTagBaseUrl = "https://github.com/icsharpcode/ILSpy/releases/tag/";
-		static readonly Uri UpdateUrl = new("https://icsharpcode.github.io/ILSpy/updates.xml");
+		const string ReleaseTagBaseUrl = "https://github.com/bkookie/ILSpy/releases/tag/";
+		static readonly Uri UpdateUrl = new("https://raw.githubusercontent.com/bkookie/ILSpy/refs/heads/update/ILSpy/updates.xml");
 		const string Band = "stable";
 
 		public static AvailableVersionInfo? LatestAvailableVersion { get; private set; }

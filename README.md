@@ -4,6 +4,8 @@ Adds a new target language "IL CDFG" to visualize IL branching and stack flow.
 
 All code in this repo belongs to the original ILSpy project (https://github.com/icsharpcode/ILSpy), the graph itself is generated from my other project (https://github.com/bkookie/UselessModdingTools).
 
+Forked from v11.1.0
+
 [Original Readme]
 -------
 
